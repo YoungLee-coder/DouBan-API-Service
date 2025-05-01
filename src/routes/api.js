@@ -1,0 +1,116 @@
+const express = require('express');
+const router = express.Router();
+const doubanService = require('../services/doubanService');
+
+/**
+ * @route GET /api/users
+ * @desc 获取所有已保存的用户
+ */
+router.get('/users', (req, res) => {
+  try {
+    const users = doubanService.getAllSavedUsers();
+    res.json({ success: true, data: users });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * @route GET /api/users/:uid
+ * @desc 获取指定用户的所有数据
+ */
+router.get('/users/:uid', async (req, res) => {
+  try {
+    const { uid } = req.params;
+    const data = await doubanService.getUserData(uid);
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * @route GET /api/users/:uid/stats
+ * @desc 获取用户统计数据
+ */
+router.get('/users/:uid/stats', async (req, res) => {
+  try {
+    const { uid } = req.params;
+    const userData = await doubanService.getUserData(uid);
+    res.json({ success: true, data: userData.stats });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * @route GET /api/users/:uid/movies
+ * @desc 获取用户看过的电影
+ */
+router.get('/users/:uid/movies', async (req, res) => {
+  try {
+    const { uid } = req.params;
+    const userData = await doubanService.getUserData(uid);
+    res.json({ success: true, data: userData.data.movies });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * @route GET /api/users/:uid/tvshows
+ * @desc 获取用户看过的电视剧
+ */
+router.get('/users/:uid/tvshows', async (req, res) => {
+  try {
+    const { uid } = req.params;
+    const userData = await doubanService.getUserData(uid);
+    res.json({ success: true, data: userData.data.tvShows });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * @route GET /api/users/:uid/books
+ * @desc 获取用户读过的书籍
+ */
+router.get('/users/:uid/books', async (req, res) => {
+  try {
+    const { uid } = req.params;
+    const userData = await doubanService.getUserData(uid);
+    res.json({ success: true, data: userData.data.books });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * @route GET /api/items/:type/:id
+ * @desc 获取特定内容的详情
+ */
+router.get('/items/:type/:id', async (req, res) => {
+  try {
+    const { type, id } = req.params;
+    const data = await doubanService.getItemDetail(type, id);
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * @route POST /api/fetch/:uid
+ * @desc 强制从API获取最新数据
+ */
+router.post('/fetch/:uid', async (req, res) => {
+  try {
+    const { uid } = req.params;
+    const data = await doubanService.getUserAllData(uid);
+    res.json({ success: true, message: `已成功获取用户 ${uid} 的最新数据`, data });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+module.exports = router; 
