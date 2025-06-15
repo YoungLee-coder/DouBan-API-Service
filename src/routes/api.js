@@ -18,12 +18,21 @@ router.get('/users', (req, res) => {
 /**
  * @route GET /api/users/:uid
  * @desc 获取指定用户的所有数据
+ * @query refresh - 可选参数，设置为true时强制从API获取最新数据
  */
 router.get('/users/:uid', async (req, res) => {
   try {
     const { uid } = req.params;
-    const data = await doubanService.getUserData(uid);
-    res.json({ success: true, data });
+    const { refresh } = req.query;
+    
+    // 如果设置了refresh=true，强制从API获取最新数据
+    if (refresh === 'true') {
+      const data = await doubanService.getUserAllData(uid);
+      res.json({ success: true, data, message: '已获取最新数据' });
+    } else {
+      const data = await doubanService.getUserData(uid);
+      res.json({ success: true, data });
+    }
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -104,6 +113,20 @@ router.get('/items/:type/:id', async (req, res) => {
  * @desc 强制从API获取最新数据
  */
 router.post('/fetch/:uid', async (req, res) => {
+  try {
+    const { uid } = req.params;
+    const data = await doubanService.getUserAllData(uid);
+    res.json({ success: true, message: `已成功获取用户 ${uid} 的最新数据`, data });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * @route GET /api/fetch/:uid
+ * @desc 使用GET方法强制从API获取最新数据
+ */
+router.get('/fetch/:uid', async (req, res) => {
   try {
     const { uid } = req.params;
     const data = await doubanService.getUserAllData(uid);

@@ -43,6 +43,7 @@ npm start
 ### 获取指定用户的所有数据
 - **GET** `/api/users/:uid`
   - `:uid` - 豆瓣用户ID
+  - 可选查询参数：`?refresh=true` - 强制从API获取最新数据
 
 ### 获取用户统计数据
 - **GET** `/api/users/:uid/stats`
@@ -68,6 +69,9 @@ npm start
 ### 强制从API获取最新数据
 - **POST** `/api/fetch/:uid`
   - `:uid` - 豆瓣用户ID
+- **GET** `/api/fetch/:uid`
+  - `:uid` - 豆瓣用户ID
+  - 使用GET方法强制获取最新数据，便于浏览器直接访问
 
 ## 使用示例
 
@@ -79,6 +83,16 @@ GET http://localhost:3000/api/users/ahbei/movies
 获取电影详情:
 ```
 GET http://localhost:3000/api/items/movie/26683723
+```
+
+强制获取用户"ahbei"的最新数据:
+```
+GET http://localhost:3000/api/fetch/ahbei
+```
+
+或者在获取用户数据时使用refresh参数:
+```
+GET http://localhost:3000/api/users/ahbei?refresh=true
 ```
 
 ## 数据存储

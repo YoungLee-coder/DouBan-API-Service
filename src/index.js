@@ -85,6 +85,7 @@ app.get('/', (req, res) => {
         <div class="endpoint">
           <p><span class="method">GET</span> <span class="url">/api/users/:uid</span></p>
           <p>获取指定用户的所有数据</p>
+          <p>可选参数: <code>?refresh=true</code> 强制获取最新数据</p>
         </div>
         
         <div class="endpoint">
@@ -118,12 +119,23 @@ app.get('/', (req, res) => {
           <p>强制从豆瓣API获取最新数据</p>
         </div>
         
+        <div class="endpoint">
+          <p><span class="method">GET</span> <span class="url">/api/fetch/:uid</span></p>
+          <p>使用GET方法强制从豆瓣API获取最新数据（便于浏览器直接访问）</p>
+        </div>
+        
         <h2>使用示例</h2>
         <p>获取用户 "ahbei" 的所有看过的电影:</p>
         <pre>GET http://localhost:${PORT}/api/users/ahbei/movies</pre>
         
         <p>获取电影详情:</p>
         <pre>GET http://localhost:${PORT}/api/items/movie/26683723</pre>
+        
+        <p>强制获取用户 "ahbei" 的最新数据:</p>
+        <pre>GET http://localhost:${PORT}/api/fetch/ahbei</pre>
+        
+        <p>或者在获取用户数据时附加refresh参数:</p>
+        <pre>GET http://localhost:${PORT}/api/users/ahbei?refresh=true</pre>
       </body>
     </html>
   `);
