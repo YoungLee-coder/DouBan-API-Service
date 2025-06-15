@@ -147,9 +147,9 @@ app.get('/', (req, res) => {
         <pre>GET http://localhost:${PORT}/api/users/ahbei?refresh=true</pre>
         
         <h2>状态说明</h2>
-        <p><strong>done:</strong> 已观看/已阅读</p>
-        <p><strong>doing:</strong> 正在观看/正在阅读</p>
-        <p><strong>mark:</strong> 想看/想读</p>
+        <p><strong>done:</strong> 已观看（影视）/ 已阅读（书籍）</p>
+        <p><strong>doing:</strong> 正在观看（影视）/ 正在阅读（书籍）</p>
+        <p><strong>mark:</strong> 想看（影视）/ 想读（书籍）</p>
       </body>
     </html>
   `);

@@ -72,9 +72,9 @@ router.get('/users/:uid/movies', async (req, res) => {
     // 如果指定了状态，进行过滤
     if (status) {
       const statusMap = {
-        'done': '已观看/已阅读',
-        'doing': '正在观看/正在阅读',
-        'mark': '想看/想读'
+        'done': '已观看',
+        'doing': '正在观看',
+        'mark': '想看'
       };
       const targetStatus = statusMap[status];
       if (targetStatus) {
@@ -108,9 +108,9 @@ router.get('/users/:uid/tvshows', async (req, res) => {
     // 如果指定了状态，进行过滤
     if (status) {
       const statusMap = {
-        'done': '已观看/已阅读',
-        'doing': '正在观看/正在阅读',
-        'mark': '想看/想读'
+        'done': '已观看',
+        'doing': '正在观看',
+        'mark': '想看'
       };
       const targetStatus = statusMap[status];
       if (targetStatus) {
@@ -144,9 +144,9 @@ router.get('/users/:uid/books', async (req, res) => {
     // 如果指定了状态，进行过滤
     if (status) {
       const statusMap = {
-        'done': '已观看/已阅读',
-        'doing': '正在观看/正在阅读',
-        'mark': '想看/想读'
+        'done': '已阅读',
+        'doing': '正在阅读',
+        'mark': '想读'
       };
       const targetStatus = statusMap[status];
       if (targetStatus) {

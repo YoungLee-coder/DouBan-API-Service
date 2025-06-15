@@ -110,9 +110,9 @@ GET http://localhost:3000/api/users/ahbei/movies?status=mark
 
 ## 状态说明
 
-- **done**: 已观看/已阅读
-- **doing**: 正在观看/正在阅读  
-- **mark**: 想看/想读
+- **done**: 已观看（影视）/ 已阅读（书籍）
+- **doing**: 正在观看（影视）/ 正在阅读（书籍）
+- **mark**: 想看（影视）/ 想读（书籍）
 
 ## 数据存储
 

@@ -184,14 +184,29 @@ function getAllSavedUsers() {
 /**
  * 将豆瓣状态转换为中文状态
  * @param {string} status - 豆瓣状态 (done, doing, mark)
+ * @param {string} type - 内容类型 (movie, tvshow, book)
  * @returns {string} 中文状态
  */
-function getStatusText(status) {
-  const statusMap = {
-    'done': '已观看/已阅读',
-    'doing': '正在观看/正在阅读', 
-    'mark': '想看/想读'
+function getStatusText(status, type = 'movie') {
+  const statusMaps = {
+    movie: {
+      'done': '已观看',
+      'doing': '正在观看',
+      'mark': '想看'
+    },
+    tvshow: {
+      'done': '已观看',
+      'doing': '正在观看',
+      'mark': '想看'
+    },
+    book: {
+      'done': '已阅读',
+      'doing': '正在阅读',
+      'mark': '想读'
+    }
   };
+  
+  const statusMap = statusMaps[type] || statusMaps.movie;
   return statusMap[status] || '未知状态';
 }
 
@@ -199,9 +214,10 @@ function getStatusText(status) {
  * 过滤内容数据，只保留需要的字段
  * @param {Array} items - 内容数据数组
  * @param {string} status - 当前数据的状态
+ * @param {string} type - 内容类型 (movie, tvshow, book)
  * @returns {Array} 过滤后的数据数组
  */
-function filterItemData(items, status = 'done') {
+function filterItemData(items, status = 'done', type = 'movie') {
   return items.map(item => {
     const filteredItem = {
       name: item.subject?.title || '',
@@ -209,7 +225,7 @@ function filterItemData(items, status = 'done') {
       comment: item.comment || '',
       rating: item.rating?.value || 0,
       image: item.subject?.pic?.normal || '',
-      status: getStatusText(status)
+      status: getStatusText(status, type)
     };
     return filteredItem;
   });
@@ -266,19 +282,19 @@ async function getUserAllData(uid) {
     // 处理电影数据
     ['done', 'doing', 'mark'].forEach(status => {
       const moviesOfStatus = pureMovies.filter(item => item.status === status);
-      filteredMovies.push(...filterItemData(moviesOfStatus, status));
+      filteredMovies.push(...filterItemData(moviesOfStatus, status, 'movie'));
     });
     
     // 处理电视剧数据
     ['done', 'doing', 'mark'].forEach(status => {
       const tvShowsOfStatus = tvShows.filter(item => item.status === status);
-      filteredTvShows.push(...filterItemData(tvShowsOfStatus, status));
+      filteredTvShows.push(...filterItemData(tvShowsOfStatus, status, 'tvshow'));
     });
     
     // 处理书籍数据
     ['done', 'doing', 'mark'].forEach(status => {
       const booksOfStatus = allBooks.filter(item => item.status === status);
-      filteredBooks.push(...filterItemData(booksOfStatus, status));
+      filteredBooks.push(...filterItemData(booksOfStatus, status, 'book'));
     });
     
     const result = {
@@ -288,19 +304,19 @@ async function getUserAllData(uid) {
         tvShows: filteredTvShows.length,
         books: filteredBooks.length,
         moviesByStatus: {
-          done: filteredMovies.filter(m => m.status === '已观看/已阅读').length,
-          doing: filteredMovies.filter(m => m.status === '正在观看/正在阅读').length,
-          mark: filteredMovies.filter(m => m.status === '想看/想读').length
+          done: filteredMovies.filter(m => m.status === '已观看').length,
+          doing: filteredMovies.filter(m => m.status === '正在观看').length,
+          mark: filteredMovies.filter(m => m.status === '想看').length
         },
         tvShowsByStatus: {
-          done: filteredTvShows.filter(t => t.status === '已观看/已阅读').length,
-          doing: filteredTvShows.filter(t => t.status === '正在观看/正在阅读').length,
-          mark: filteredTvShows.filter(t => t.status === '想看/想读').length
+          done: filteredTvShows.filter(t => t.status === '已观看').length,
+          doing: filteredTvShows.filter(t => t.status === '正在观看').length,
+          mark: filteredTvShows.filter(t => t.status === '想看').length
         },
         booksByStatus: {
-          done: filteredBooks.filter(b => b.status === '已观看/已阅读').length,
-          doing: filteredBooks.filter(b => b.status === '正在观看/正在阅读').length,
-          mark: filteredBooks.filter(b => b.status === '想看/想读').length
+          done: filteredBooks.filter(b => b.status === '已阅读').length,
+          doing: filteredBooks.filter(b => b.status === '正在阅读').length,
+          mark: filteredBooks.filter(b => b.status === '想读').length
         }
       },
       data: {
