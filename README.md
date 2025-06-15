@@ -52,14 +52,17 @@ npm start
 ### 获取用户看过的电影
 - **GET** `/api/users/:uid/movies`
   - `:uid` - 豆瓣用户ID
+  - 可选查询参数：`?status=done|doing|mark` - 按状态过滤，`?refresh=true` - 强制刷新
 
 ### 获取用户看过的电视剧
 - **GET** `/api/users/:uid/tvshows`
   - `:uid` - 豆瓣用户ID
+  - 可选查询参数：`?status=done|doing|mark` - 按状态过滤，`?refresh=true` - 强制刷新
 
 ### 获取用户读过的书籍
 - **GET** `/api/users/:uid/books`
   - `:uid` - 豆瓣用户ID
+  - 可选查询参数：`?status=done|doing|mark` - 按状态过滤，`?refresh=true` - 强制刷新
 
 ### 获取特定内容的详情
 - **GET** `/api/items/:type/:id`
@@ -94,6 +97,22 @@ GET http://localhost:3000/api/fetch/ahbei
 ```
 GET http://localhost:3000/api/users/ahbei?refresh=true
 ```
+
+获取用户"ahbei"正在观看的电影:
+```
+GET http://localhost:3000/api/users/ahbei/movies?status=doing
+```
+
+获取用户"ahbei"想看的电影:
+```
+GET http://localhost:3000/api/users/ahbei/movies?status=mark
+```
+
+## 状态说明
+
+- **done**: 已观看/已阅读
+- **doing**: 正在观看/正在阅读  
+- **mark**: 想看/想读
 
 ## 数据存储
 

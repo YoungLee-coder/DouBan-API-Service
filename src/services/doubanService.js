@@ -182,18 +182,34 @@ function getAllSavedUsers() {
 }
 
 /**
+ * 将豆瓣状态转换为中文状态
+ * @param {string} status - 豆瓣状态 (done, doing, mark)
+ * @returns {string} 中文状态
+ */
+function getStatusText(status) {
+  const statusMap = {
+    'done': '已观看/已阅读',
+    'doing': '正在观看/正在阅读', 
+    'mark': '想看/想读'
+  };
+  return statusMap[status] || '未知状态';
+}
+
+/**
  * 过滤内容数据，只保留需要的字段
  * @param {Array} items - 内容数据数组
+ * @param {string} status - 当前数据的状态
  * @returns {Array} 过滤后的数据数组
  */
-function filterItemData(items) {
+function filterItemData(items, status = 'done') {
   return items.map(item => {
     const filteredItem = {
       name: item.subject?.title || '',
       markTime: item.create_time || '',
       comment: item.comment || '',
       rating: item.rating?.value || 0,
-      image: item.subject?.pic?.normal || ''
+      image: item.subject?.pic?.normal || '',
+      status: getStatusText(status)
     };
     return filteredItem;
   });
@@ -206,36 +222,86 @@ function filterItemData(items) {
  */
 async function getUserAllData(uid) {
   try {
-    // 获取电影数据
-    const movies = await getAllUserInterests(uid, 'movie', 'done');
+    // 获取所有状态的电影数据
+    const moviesDone = await getAllUserInterests(uid, 'movie', 'done');
+    const moviesDoing = await getAllUserInterests(uid, 'movie', 'doing');
+    const moviesMark = await getAllUserInterests(uid, 'movie', 'mark');
+    
+    // 合并所有电影数据
+    const allMovies = [
+      ...moviesDone.map(item => ({ ...item, status: 'done' })),
+      ...moviesDoing.map(item => ({ ...item, status: 'doing' })),
+      ...moviesMark.map(item => ({ ...item, status: 'mark' }))
+    ];
+    
     // 获取电视剧数据（在豆瓣中电视剧也是movie类型）
-    const tvShows = movies.filter(item => 
+    const tvShows = allMovies.filter(item => 
       item.subject && item.subject.card_subtitle && 
       (item.subject.card_subtitle.includes('电视剧') || 
        item.subject.genres && item.subject.genres.includes('电视剧')));
-    // 获取书籍数据
-    const books = await getAllUserInterests(uid, 'book', 'done');
     
-    // 过滤电影数据
-    const filteredMovies = filterItemData(
-      movies.filter(item => 
-        item.subject && item.subject.card_subtitle && 
-        !item.subject.card_subtitle.includes('电视剧') && 
-        (!item.subject.genres || !item.subject.genres.includes('电视剧')))
-    );
+    // 获取所有状态的书籍数据
+    const booksDone = await getAllUserInterests(uid, 'book', 'done');
+    const booksDoing = await getAllUserInterests(uid, 'book', 'doing');
+    const booksMark = await getAllUserInterests(uid, 'book', 'mark');
     
-    // 过滤电视剧数据
-    const filteredTvShows = filterItemData(tvShows);
+    // 合并所有书籍数据
+    const allBooks = [
+      ...booksDone.map(item => ({ ...item, status: 'done' })),
+      ...booksDoing.map(item => ({ ...item, status: 'doing' })),
+      ...booksMark.map(item => ({ ...item, status: 'mark' }))
+    ];
     
-    // 过滤书籍数据
-    const filteredBooks = filterItemData(books);
+    // 过滤电影数据（排除电视剧）
+    const pureMovies = allMovies.filter(item => 
+      item.subject && item.subject.card_subtitle && 
+      !item.subject.card_subtitle.includes('电视剧') && 
+      (!item.subject.genres || !item.subject.genres.includes('电视剧')));
+    
+    // 按状态分别过滤数据
+    const filteredMovies = [];
+    const filteredTvShows = [];
+    const filteredBooks = [];
+    
+    // 处理电影数据
+    ['done', 'doing', 'mark'].forEach(status => {
+      const moviesOfStatus = pureMovies.filter(item => item.status === status);
+      filteredMovies.push(...filterItemData(moviesOfStatus, status));
+    });
+    
+    // 处理电视剧数据
+    ['done', 'doing', 'mark'].forEach(status => {
+      const tvShowsOfStatus = tvShows.filter(item => item.status === status);
+      filteredTvShows.push(...filterItemData(tvShowsOfStatus, status));
+    });
+    
+    // 处理书籍数据
+    ['done', 'doing', 'mark'].forEach(status => {
+      const booksOfStatus = allBooks.filter(item => item.status === status);
+      filteredBooks.push(...filterItemData(booksOfStatus, status));
+    });
     
     const result = {
       uid,
       stats: {
         movies: filteredMovies.length,
         tvShows: filteredTvShows.length,
-        books: filteredBooks.length
+        books: filteredBooks.length,
+        moviesByStatus: {
+          done: filteredMovies.filter(m => m.status === '已观看/已阅读').length,
+          doing: filteredMovies.filter(m => m.status === '正在观看/正在阅读').length,
+          mark: filteredMovies.filter(m => m.status === '想看/想读').length
+        },
+        tvShowsByStatus: {
+          done: filteredTvShows.filter(t => t.status === '已观看/已阅读').length,
+          doing: filteredTvShows.filter(t => t.status === '正在观看/正在阅读').length,
+          mark: filteredTvShows.filter(t => t.status === '想看/想读').length
+        },
+        booksByStatus: {
+          done: filteredBooks.filter(b => b.status === '已观看/已阅读').length,
+          doing: filteredBooks.filter(b => b.status === '正在观看/正在阅读').length,
+          mark: filteredBooks.filter(b => b.status === '想看/想读').length
+        }
       },
       data: {
         movies: filteredMovies,
@@ -281,5 +347,6 @@ module.exports = {
   getAllSavedUsers,
   getUserAllData,
   getUserData,
-  filterItemData
+  filterItemData,
+  getStatusText
 }; 

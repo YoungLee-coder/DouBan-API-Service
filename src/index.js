@@ -96,16 +96,19 @@ app.get('/', (req, res) => {
         <div class="endpoint">
           <p><span class="method">GET</span> <span class="url">/api/users/:uid/movies</span></p>
           <p>获取用户看过的电影</p>
+          <p>可选参数: <code>?status=done|doing|mark</code> 按状态过滤，<code>?refresh=true</code> 强制刷新</p>
         </div>
         
         <div class="endpoint">
           <p><span class="method">GET</span> <span class="url">/api/users/:uid/tvshows</span></p>
           <p>获取用户看过的电视剧</p>
+          <p>可选参数: <code>?status=done|doing|mark</code> 按状态过滤，<code>?refresh=true</code> 强制刷新</p>
         </div>
         
         <div class="endpoint">
           <p><span class="method">GET</span> <span class="url">/api/users/:uid/books</span></p>
           <p>获取用户读过的书籍</p>
+          <p>可选参数: <code>?status=done|doing|mark</code> 按状态过滤，<code>?refresh=true</code> 强制刷新</p>
         </div>
         
         <div class="endpoint">
@@ -128,6 +131,12 @@ app.get('/', (req, res) => {
         <p>获取用户 "ahbei" 的所有看过的电影:</p>
         <pre>GET http://localhost:${PORT}/api/users/ahbei/movies</pre>
         
+        <p>获取用户 "ahbei" 正在观看的电影:</p>
+        <pre>GET http://localhost:${PORT}/api/users/ahbei/movies?status=doing</pre>
+        
+        <p>获取用户 "ahbei" 想看的电影:</p>
+        <pre>GET http://localhost:${PORT}/api/users/ahbei/movies?status=mark</pre>
+        
         <p>获取电影详情:</p>
         <pre>GET http://localhost:${PORT}/api/items/movie/26683723</pre>
         
@@ -136,6 +145,11 @@ app.get('/', (req, res) => {
         
         <p>或者在获取用户数据时附加refresh参数:</p>
         <pre>GET http://localhost:${PORT}/api/users/ahbei?refresh=true</pre>
+        
+        <h2>状态说明</h2>
+        <p><strong>done:</strong> 已观看/已阅读</p>
+        <p><strong>doing:</strong> 正在观看/正在阅读</p>
+        <p><strong>mark:</strong> 想看/想读</p>
       </body>
     </html>
   `);
