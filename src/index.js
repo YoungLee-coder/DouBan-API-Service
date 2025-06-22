@@ -3,6 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const apiRoutes = require('./routes/api');
+const imageCacheService = require('./services/imageCacheService');
 
 // 创建 Express 应用
 const app = express();
@@ -18,6 +19,9 @@ const dataPath = path.join(__dirname, 'data');
 if (!fs.existsSync(dataPath)) {
   fs.mkdirSync(dataPath, { recursive: true });
 }
+
+// 静态文件服务 - 提供缓存的图片
+app.use('/cache/images', express.static(path.join(__dirname, 'data/images')));
 
 // API 路由
 app.use('/api', apiRoutes);
@@ -127,6 +131,16 @@ app.get('/', (req, res) => {
           <p>使用GET方法强制从豆瓣API获取最新数据（便于浏览器直接访问）</p>
         </div>
         
+        <div class="endpoint">
+          <p><span class="method">GET</span> <span class="url">/api/cache/stats</span></p>
+          <p>获取图片缓存统计信息</p>
+        </div>
+        
+        <div class="endpoint">
+          <p><span class="method">POST</span> <span class="url">/api/cache/clean</span></p>
+          <p>清理过期的缓存图片（默认保留30天）</p>
+        </div>
+        
         <h2>使用示例</h2>
         <p>获取用户 "ahbei" 的所有看过的电影:</p>
         <pre>GET http://localhost:${PORT}/api/users/ahbei/movies</pre>
@@ -150,6 +164,14 @@ app.get('/', (req, res) => {
         <p><strong>done:</strong> 已观看（影视）/ 已阅读（书籍）</p>
         <p><strong>doing:</strong> 正在观看（影视）/ 正在阅读（书籍）</p>
         <p><strong>mark:</strong> 想看（影视）/ 想读（书籍）</p>
+        
+        <h2>图片缓存功能</h2>
+        <p>本服务自动缓存豆瓣的图片封面到本地，提高访问速度并减少对豆瓣服务器的请求。</p>
+        <p>API返回的数据中包含以下字段：</p>
+        <p><strong>originalImage:</strong> 豆瓣原始图片地址</p>
+        <p><strong>image:</strong> 优先使用本地缓存地址，如果缓存失败则使用原始地址</p>
+        <p><strong>cachedImage:</strong> 本地缓存地址（如果缓存成功）</p>
+        <p>缓存的图片通过 <code>/cache/images/</code> 路径访问</p>
       </body>
     </html>
   `);
@@ -158,4 +180,14 @@ app.get('/', (req, res) => {
 // 启动服务器
 app.listen(PORT, () => {
   console.log(`服务器运行在 http://localhost:${PORT}`);
+  
+  // 启动时清理过期缓存（保留30天）
+  setTimeout(() => {
+    imageCacheService.cleanCache(30);
+  }, 5000); // 5秒后执行，避免阻塞启动
+  
+  // 每天定时清理缓存
+  setInterval(() => {
+    imageCacheService.cleanCache(30);
+  }, 24 * 60 * 60 * 1000); // 24小时
 }); 

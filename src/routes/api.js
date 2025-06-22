@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const doubanService = require('../services/doubanService');
+const imageCacheService = require('../services/imageCacheService');
 
 /**
  * @route GET /api/users
@@ -197,6 +198,48 @@ router.get('/fetch/:uid', async (req, res) => {
     const { uid } = req.params;
     const data = await doubanService.getUserAllData(uid);
     res.json({ success: true, message: `已成功获取用户 ${uid} 的最新数据`, data });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * @route GET /api/cache/stats
+ * @desc 获取图片缓存统计信息
+ */
+router.get('/cache/stats', (req, res) => {
+  try {
+    const stats = imageCacheService.getCacheStats();
+    res.json({ success: true, data: stats });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * @route POST /api/cache/clean
+ * @desc 清理过期的缓存图片
+ * @body days - 可选参数，保留天数，默认30天
+ */
+router.post('/cache/clean', (req, res) => {
+  try {
+    const { days = 30 } = req.body;
+    imageCacheService.cleanCache(Number(days));
+    res.json({ success: true, message: `已清理超过 ${days} 天的缓存图片` });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * @route GET /api/cache/clean
+ * @desc 使用GET方法清理过期的缓存图片（默认30天）
+ */
+router.get('/cache/clean', (req, res) => {
+  try {
+    const { days = 30 } = req.query;
+    imageCacheService.cleanCache(Number(days));
+    res.json({ success: true, message: `已清理超过 ${days} 天的缓存图片` });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

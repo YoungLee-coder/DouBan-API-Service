@@ -1,6 +1,7 @@
 const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
+const imageCacheService = require('./imageCacheService');
 const dataPath = path.join(__dirname, '../data');
 
 // 确保数据目录存在
@@ -110,6 +111,14 @@ async function getItemDetail(type, id) {
       image: data.pic?.normal || '',
       rating: data.rating?.value || 0
     };
+    
+    // 处理图片缓存
+    if (filteredData.image) {
+      const cachedImage = await imageCacheService.downloadAndCacheImage(filteredData.image);
+      filteredData.originalImage = filteredData.image;
+      filteredData.cachedImage = cachedImage;
+      filteredData.image = cachedImage || filteredData.image; // 优先使用缓存图片
+    }
     
     // 保存数据到本地文件
     const fileName = `${type}_${id}_detail.json`;
@@ -326,10 +335,14 @@ async function getUserAllData(uid) {
       }
     };
     
-    // 保存整合数据
-    saveData(`${uid}_all_data.json`, result);
+    // 处理所有图片缓存
+    console.log('开始处理图片缓存...');
+    const processedResult = await imageCacheService.processImagesInData(result);
     
-    return result;
+    // 保存整合数据
+    saveData(`${uid}_all_data.json`, processedResult);
+    
+    return processedResult;
   } catch (error) {
     console.error(`获取用户${uid}的所有数据失败:`, error);
     throw error;
