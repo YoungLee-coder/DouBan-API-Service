@@ -157,16 +157,14 @@ GET http://localhost:3000/api/cache/clean?days=30
 4. **并发控制**: 限制并发下载数量为5个，避免对服务器造成过大压力
 5. **错误处理**: 如果图片下载失败，会保留原始豆瓣链接
 
-### API响应变化
+### API响应说明
 
-现在API返回的数据包含以下图片相关字段：
+API返回的数据包含以下字段：
 
 ```json
 {
   "name": "电影名称",
-  "originalImage": "https://img1.doubanio.com/view/photo/s_ratio_poster/public/p123456.jpg",
-  "image": "/cache/images/abc123def456.jpg",
-  "cachedImage": "/cache/images/abc123def456.jpg",
+  "image": "/cache/images/abc123def456.jpg",  // 如果缓存失败则使用豆瓣原地址
   "markTime": "2023-01-01",
   "comment": "用户评论",
   "rating": 8.5,
@@ -174,11 +172,11 @@ GET http://localhost:3000/api/cache/clean?days=30
 }
 ```
 
-#### 字段说明
+#### 图片字段说明
 
-- `originalImage`: 豆瓣原始图片地址
-- `image`: 优先使用本地缓存地址，如果缓存失败则使用原始地址
-- `cachedImage`: 本地缓存地址（如果缓存成功）
+- `image`: 智能选择的图片地址
+  - 如果成功缓存，则为本地缓存路径（如 `/cache/images/abc123def456.jpg`）
+  - 如果缓存失败，则为豆瓣原始地址（如 `https://img1.doubanio.com/...`）
 
 ### 自动清理机制
 

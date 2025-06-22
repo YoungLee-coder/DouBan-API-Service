@@ -213,16 +213,15 @@ async function processImagesInData(data) {
   // 批量缓存图片
   const urlToLocalPath = await batchCacheImages(Array.from(imageUrls));
 
-  // 更新数据，添加缓存路径
+  // 更新数据，只提供一个图片路径（优先使用缓存路径，失败则使用原路径）
   const updateImages = (items) => {
     if (Array.isArray(items)) {
       return items.map(item => {
         if (item.image) {
+          // 如果成功缓存则使用本地地址，否则使用豆瓣原地址
           return {
             ...item,
-            originalImage: item.image,
             image: urlToLocalPath[item.image] || item.image,
-            cachedImage: urlToLocalPath[item.image]
           };
         }
         return item;

@@ -115,9 +115,8 @@ async function getItemDetail(type, id) {
     // 处理图片缓存
     if (filteredData.image) {
       const cachedImage = await imageCacheService.downloadAndCacheImage(filteredData.image);
-      filteredData.originalImage = filteredData.image;
-      filteredData.cachedImage = cachedImage;
-      filteredData.image = cachedImage || filteredData.image; // 优先使用缓存图片
+      // 优先使用缓存图片，缓存失败则保留原始地址
+      filteredData.image = cachedImage || filteredData.image;
     }
     
     // 保存数据到本地文件
