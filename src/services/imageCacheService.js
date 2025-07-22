@@ -117,9 +117,9 @@ async function batchCacheImages(imageUrls) {
 
 /**
  * 清理缓存（删除超过指定天数的文件）
- * @param {number} days - 保留天数，默认30天
+ * @param {number} days - 保留天数，默认365天（1年）
  */
-function cleanCache(days = 30) {
+function cleanCache(days = 365) {
   try {
     const files = fs.readdirSync(CACHE_DIR);
     const cutoffTime = Date.now() - (days * 24 * 60 * 60 * 1000);
