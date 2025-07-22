@@ -377,14 +377,30 @@ async function getUserAllData(uid) {
 /**
  * 检查并从本地获取用户数据，如果不存在则从API获取
  * @param {string} uid - 用户ID
+ * @param {boolean} validateCache - 是否验证图片缓存，默认true
  * @returns {Promise<Object>} 返回用户数据
  */
-async function getUserData(uid) {
+async function getUserData(uid, validateCache = true) {
   const fileName = `${uid}_all_data.json`;
   const localData = loadData(fileName);
   
   if (localData) {
     console.log(`从本地加载用户${uid}数据`);
+    
+    if (validateCache) {
+      console.log(`验证用户${uid}的图片缓存...`);
+      // 验证并修复图片缓存
+      const validatedData = await imageCacheService.processImagesInData(localData, true);
+      
+      // 如果数据有变化，保存更新后的数据
+      if (JSON.stringify(validatedData) !== JSON.stringify(localData)) {
+        console.log(`用户${uid}的图片缓存已更新，保存新数据`);
+        saveData(fileName, validatedData);
+      }
+      
+      return validatedData;
+    }
+    
     return localData;
   }
   

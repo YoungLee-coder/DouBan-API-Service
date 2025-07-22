@@ -20,18 +20,20 @@ router.get('/users', (req, res) => {
  * @route GET /api/users/:uid
  * @desc 获取指定用户的所有数据
  * @query refresh - 可选参数，设置为true时强制从API获取最新数据（会先删除旧数据）
+ * @query validateCache - 可选参数，设置为false时跳过图片缓存验证（默认为true）
  */
 router.get('/users/:uid', async (req, res) => {
   try {
     const { uid } = req.params;
-    const { refresh } = req.query;
+    const { refresh, validateCache } = req.query;
     
     // 如果设置了refresh=true，强制从API获取最新数据
     if (refresh === 'true') {
       const data = await doubanService.getUserAllData(uid);
       res.json({ success: true, data, message: '已删除旧数据并获取最新数据' });
     } else {
-      const data = await doubanService.getUserData(uid);
+      const shouldValidateCache = validateCache !== 'false';
+      const data = await doubanService.getUserData(uid, shouldValidateCache);
       res.json({ success: true, data });
     }
   } catch (error) {
@@ -57,16 +59,17 @@ router.get('/users/:uid/stats', async (req, res) => {
  * @route GET /api/users/:uid/movies
  * @desc 获取用户看过的电影
  * @query status - 可选参数，按状态过滤: done(已观看), doing(正在观看), mark(想看)
+ * @query validateCache - 可选参数，设置为false时跳过图片缓存验证（默认为true）
  */
 router.get('/users/:uid/movies', async (req, res) => {
   try {
     const { uid } = req.params;
-    const { status, refresh } = req.query;
+    const { status, refresh, validateCache } = req.query;
     
     // 如果设置了refresh=true，强制从API获取最新数据
     const userData = refresh === 'true' ? 
       await doubanService.getUserAllData(uid) : 
-      await doubanService.getUserData(uid);
+      await doubanService.getUserData(uid, validateCache !== 'false');
     
     let movies = userData.data.movies;
     
@@ -93,16 +96,17 @@ router.get('/users/:uid/movies', async (req, res) => {
  * @route GET /api/users/:uid/tvshows
  * @desc 获取用户看过的电视剧
  * @query status - 可选参数，按状态过滤: done(已观看), doing(正在观看), mark(想看)
+ * @query validateCache - 可选参数，设置为false时跳过图片缓存验证（默认为true）
  */
 router.get('/users/:uid/tvshows', async (req, res) => {
   try {
     const { uid } = req.params;
-    const { status, refresh } = req.query;
+    const { status, refresh, validateCache } = req.query;
     
     // 如果设置了refresh=true，强制从API获取最新数据
     const userData = refresh === 'true' ? 
       await doubanService.getUserAllData(uid) : 
-      await doubanService.getUserData(uid);
+      await doubanService.getUserData(uid, validateCache !== 'false');
     
     let tvShows = userData.data.tvShows;
     
@@ -129,16 +133,17 @@ router.get('/users/:uid/tvshows', async (req, res) => {
  * @route GET /api/users/:uid/books
  * @desc 获取用户读过的书籍
  * @query status - 可选参数，按状态过滤: done(已阅读), doing(正在阅读), mark(想读)
+ * @query validateCache - 可选参数，设置为false时跳过图片缓存验证（默认为true）
  */
 router.get('/users/:uid/books', async (req, res) => {
   try {
     const { uid } = req.params;
-    const { status, refresh } = req.query;
+    const { status, refresh, validateCache } = req.query;
     
     // 如果设置了refresh=true，强制从API获取最新数据
     const userData = refresh === 'true' ? 
       await doubanService.getUserAllData(uid) : 
-      await doubanService.getUserData(uid);
+      await doubanService.getUserData(uid, validateCache !== 'false');
     
     let books = userData.data.books;
     
@@ -254,6 +259,48 @@ router.get('/cache/clean', (req, res) => {
     const { days = 30 } = req.query;
     imageCacheService.cleanCache(Number(days));
     res.json({ success: true, message: `已清理超过 ${days} 天的缓存图片` });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * @route POST /api/cache/repair/:uid
+ * @desc 修复指定用户的图片缓存
+ */
+router.post('/cache/repair/:uid', async (req, res) => {
+  try {
+    const { uid } = req.params;
+    
+    // 强制验证并修复用户的图片缓存
+    const data = await doubanService.getUserData(uid, true);
+    
+    res.json({ 
+      success: true, 
+      message: `已修复用户 ${uid} 的图片缓存`,
+      data 
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * @route GET /api/cache/repair/:uid
+ * @desc 使用GET方法修复指定用户的图片缓存
+ */
+router.get('/cache/repair/:uid', async (req, res) => {
+  try {
+    const { uid } = req.params;
+    
+    // 强制验证并修复用户的图片缓存
+    const data = await doubanService.getUserData(uid, true);
+    
+    res.json({ 
+      success: true, 
+      message: `已修复用户 ${uid} 的图片缓存`,
+      data 
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

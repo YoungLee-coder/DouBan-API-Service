@@ -54,10 +54,27 @@ async function downloadAndCacheImage(imageUrl) {
   const fileName = generateFileName(imageUrl);
   const filePath = path.join(CACHE_DIR, fileName);
 
-  // 如果文件已存在，直接返回缓存路径
+  // 检查文件是否存在且有效（文件大小大于0）
   if (fs.existsSync(filePath)) {
-    console.log(`图片已缓存: ${fileName}`);
-    return `/cache/images/${fileName}`;
+    try {
+      const stats = fs.statSync(filePath);
+      if (stats.size > 0) {
+        console.log(`图片已缓存: ${fileName}`);
+        return `/cache/images/${fileName}`;
+      } else {
+        // 文件存在但大小为0，删除并重新下载
+        console.log(`发现损坏的缓存文件，正在重新下载: ${fileName}`);
+        fs.unlinkSync(filePath);
+      }
+    } catch (error) {
+      console.log(`缓存文件状态检查失败，正在重新下载: ${fileName}`);
+      // 如果文件状态检查失败，尝试删除文件（如果存在）
+      try {
+        fs.unlinkSync(filePath);
+      } catch (deleteError) {
+        // 忽略删除错误
+      }
+    }
   }
 
   try {
@@ -174,21 +191,68 @@ function getCacheStats() {
 }
 
 /**
+ * 验证并修复图片缓存路径
+ * @param {string} imagePath - 图片路径（可能是缓存路径或原始URL）
+ * @param {string} originalUrl - 原始图片URL（用于重新缓存）
+ * @returns {Promise<string>} 返回有效的图片路径
+ */
+async function validateAndFixImagePath(imagePath, originalUrl) {
+  // 如果是缓存路径，检查文件是否存在
+  if (imagePath && imagePath.startsWith('/cache/images/')) {
+    const fileName = path.basename(imagePath);
+    const filePath = path.join(CACHE_DIR, fileName);
+    
+    if (fs.existsSync(filePath)) {
+      try {
+        const stats = fs.statSync(filePath);
+        if (stats.size > 0) {
+          return imagePath; // 缓存文件有效
+        }
+      } catch (error) {
+        // 文件状态检查失败
+      }
+    }
+    
+    // 缓存文件不存在或无效，尝试重新缓存
+    if (originalUrl) {
+      console.log(`缓存文件丢失，正在重新缓存: ${fileName}`);
+      const newCachedPath = await downloadAndCacheImage(originalUrl);
+      return newCachedPath || originalUrl;
+    }
+  }
+  
+  // 如果是原始URL，尝试缓存
+  if (imagePath && (imagePath.startsWith('http://') || imagePath.startsWith('https://'))) {
+    const cachedPath = await downloadAndCacheImage(imagePath);
+    return cachedPath || imagePath;
+  }
+  
+  return imagePath;
+}
+
+/**
  * 处理包含图片的数据，添加缓存图片路径
  * @param {Array|Object} data - 包含图片的数据
+ * @param {boolean} validateCache - 是否验证现有缓存，默认false
  * @returns {Promise<Array|Object>} 处理后的数据，包含原始URL和缓存URL
  */
-async function processImagesInData(data) {
+async function processImagesInData(data, validateCache = false) {
   if (!data) return data;
 
-  // 收集所有图片URL
-  const imageUrls = new Set();
+  // 收集所有图片URL和现有路径
+  const imageInfo = new Map(); // URL -> {currentPath, originalUrl}
   
   const collectUrls = (items) => {
     if (Array.isArray(items)) {
       items.forEach(item => {
         if (item.image) {
-          imageUrls.add(item.image);
+          // 尝试从现有数据中提取原始URL
+          const originalUrl = item.originalImage || 
+                            (item.image.startsWith('http') ? item.image : null);
+          imageInfo.set(item.image, {
+            currentPath: item.image,
+            originalUrl: originalUrl
+          });
         }
       });
     } else if (typeof items === 'object' && items !== null) {
@@ -210,18 +274,37 @@ async function processImagesInData(data) {
     collectUrls(data);
   }
 
-  // 批量缓存图片
-  const urlToLocalPath = await batchCacheImages(Array.from(imageUrls));
+  // 处理图片缓存
+  const pathToNewPath = new Map();
+  
+  if (validateCache) {
+    // 验证并修复现有缓存
+    for (const [currentPath, info] of imageInfo) {
+      const validPath = await validateAndFixImagePath(info.currentPath, info.originalUrl);
+      pathToNewPath.set(currentPath, validPath);
+    }
+  } else {
+    // 批量缓存新图片
+    const urlsToCache = Array.from(imageInfo.values())
+      .map(info => info.originalUrl || info.currentPath)
+      .filter(url => url && (url.startsWith('http://') || url.startsWith('https://')));
+    
+    const urlToLocalPath = await batchCacheImages(urlsToCache);
+    
+    for (const [currentPath, info] of imageInfo) {
+      const originalUrl = info.originalUrl || info.currentPath;
+      pathToNewPath.set(currentPath, urlToLocalPath[originalUrl] || currentPath);
+    }
+  }
 
-  // 更新数据，只提供一个图片路径（优先使用缓存路径，失败则使用原路径）
+  // 更新数据
   const updateImages = (items) => {
     if (Array.isArray(items)) {
       return items.map(item => {
-        if (item.image) {
-          // 如果成功缓存则使用本地地址，否则使用豆瓣原地址
+        if (item.image && pathToNewPath.has(item.image)) {
           return {
             ...item,
-            image: urlToLocalPath[item.image] || item.image,
+            image: pathToNewPath.get(item.image),
           };
         }
         return item;
@@ -258,6 +341,7 @@ module.exports = {
   cleanCache,
   getCacheStats,
   processImagesInData,
+  validateAndFixImagePath,
   generateFileName,
   CACHE_DIR
 }; 
