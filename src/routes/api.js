@@ -27,6 +27,8 @@ router.get('/users/:uid', async (req, res) => {
     const { uid } = req.params;
     const { refresh, validateCache } = req.query;
     
+    console.log(`[DEBUG] 路由接收到的参数 - UID: ${uid}, Refresh: ${refresh}, ValidateCache: ${validateCache}`);
+    
     // 如果设置了refresh=true，强制从API获取最新数据
     if (refresh === 'true') {
       const data = await doubanService.getUserAllData(uid);

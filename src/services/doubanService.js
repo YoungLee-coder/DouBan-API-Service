@@ -26,7 +26,9 @@ const headers = {
  * @returns {Promise<Object>} 返回用户收藏内容
  */
 async function getUserInterests(uid, type = 'movie', status = 'done', start = 0, count = 50) {
+  console.log(`[DEBUG] 获取用户收藏 - UID: ${uid}, Type: ${type}, Status: ${status}`);
   const url = `${API_BASE_URL}/user/${uid}/interests?type=${type}&status=${status}&count=${count}&start=${start}`;
+  console.log(`[DEBUG] 请求URL: ${url}`);
   
   try {
     const response = await fetch(url, { headers });
