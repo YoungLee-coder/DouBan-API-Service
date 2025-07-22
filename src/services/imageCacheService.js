@@ -157,26 +157,28 @@ async function batchCacheImages(imageUrls) {
 }
 
 /**
- * 清理缓存（删除超过指定天数的文件）
- * @param {number} days - 保留天数，默认30天
+ * 清理缓存（手动清理指定文件或全部文件）
+ * @param {Array<string>} fileNames - 要删除的文件名数组，如果为空则不删除任何文件
  */
-function cleanCache(days = 30) {
+function cleanCache(fileNames = []) {
   try {
-    const files = fs.readdirSync(CACHE_DIR);
-    const cutoffTime = Date.now() - (days * 24 * 60 * 60 * 1000);
+    if (!fileNames || fileNames.length === 0) {
+      console.log('图片缓存已设置为永不过期，不会自动清理任何文件');
+      return;
+    }
+
     let deletedCount = 0;
 
-    for (const file of files) {
-      const filePath = path.join(CACHE_DIR, file);
-      const stats = fs.statSync(filePath);
-
-      if (stats.mtime.getTime() < cutoffTime) {
+    for (const fileName of fileNames) {
+      const filePath = path.join(CACHE_DIR, fileName);
+      if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
         deletedCount++;
+        console.log(`手动删除缓存文件: ${fileName}`);
       }
     }
 
-    console.log(`清理缓存完成，删除了 ${deletedCount} 个文件`);
+    console.log(`手动清理缓存完成，删除了 ${deletedCount} 个文件`);
   } catch (error) {
     console.error('清理缓存失败:', error);
   }
@@ -201,7 +203,8 @@ function getCacheStats() {
       fileCount: files.length,
       totalSize: totalSize,
       totalSizeMB: (totalSize / (1024 * 1024)).toFixed(2),
-      cacheDir: CACHE_DIR
+      cacheDir: CACHE_DIR,
+      cachePolicy: '永不过期 - 图片将永久保存直到手动删除'
     };
   } catch (error) {
     console.error('获取缓存统计失败:', error);
@@ -209,8 +212,40 @@ function getCacheStats() {
       fileCount: 0,
       totalSize: 0,
       totalSizeMB: '0.00',
-      cacheDir: CACHE_DIR
+      cacheDir: CACHE_DIR,
+      cachePolicy: '永不过期 - 图片将永久保存直到手动删除'
     };
+  }
+}
+
+/**
+ * 获取所有缓存文件的详细信息
+ * @returns {Array} 缓存文件信息数组
+ */
+function getAllCacheFiles() {
+  try {
+    const files = fs.readdirSync(CACHE_DIR);
+    
+    const fileList = files.map(fileName => {
+      const filePath = path.join(CACHE_DIR, fileName);
+      const stats = fs.statSync(filePath);
+      return {
+        fileName,
+        size: stats.size,
+        sizeMB: (stats.size / (1024 * 1024)).toFixed(2),
+        createdAt: stats.birthtime,
+        modifiedAt: stats.mtime,
+        isValid: stats.size > 0
+      };
+    });
+    
+    // 按修改时间排序，最新的在前
+    fileList.sort((a, b) => new Date(b.modifiedAt) - new Date(a.modifiedAt));
+    
+    return fileList;
+  } catch (error) {
+    console.error('获取缓存文件列表失败:', error);
+    return [];
   }
 }
 
@@ -408,6 +443,7 @@ module.exports = {
   batchCacheImages,
   cleanCache,
   getCacheStats,
+  getAllCacheFiles,
   processImagesInData,
   validateAndFixImagePath,
   generateFileName,

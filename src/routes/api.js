@@ -228,15 +228,51 @@ router.get('/cache/stats', (req, res) => {
 });
 
 /**
+ * @route GET /api/cache/files
+ * @desc 获取所有缓存文件列表
+ */
+router.get('/cache/files', (req, res) => {
+  try {
+    const fileList = imageCacheService.getAllCacheFiles();
+    
+    res.json({ 
+      success: true, 
+      data: {
+        totalFiles: fileList.length,
+        files: fileList,
+        cacheDir: imageCacheService.CACHE_DIR,
+        cachePolicy: '永不过期 - 图片将永久保存直到手动删除',
+        note: '使用POST /api/cache/clean 接口并提供fileNames数组可手动删除指定文件'
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
  * @route POST /api/cache/clean
- * @desc 清理过期的缓存图片
- * @body days - 可选参数，保留天数，默认30天
+ * @desc 手动清理指定的缓存图片文件
+ * @body fileNames - 要删除的文件名数组，如果为空则不删除任何文件
  */
 router.post('/cache/clean', (req, res) => {
   try {
-    const { days = 30 } = req.body;
-    imageCacheService.cleanCache(Number(days));
-    res.json({ success: true, message: `已清理超过 ${days} 天的缓存图片` });
+    const { fileNames = [] } = req.body;
+    
+    if (!Array.isArray(fileNames) || fileNames.length === 0) {
+      return res.json({ 
+        success: true, 
+        message: '图片缓存已设置为永不过期，需要指定要删除的文件名数组才能手动清理',
+        example: { fileNames: ['abc123.jpg', 'def456.png'] }
+      });
+    }
+    
+    imageCacheService.cleanCache(fileNames);
+    res.json({ 
+      success: true, 
+      message: `已手动删除 ${fileNames.length} 个指定的缓存文件`,
+      deletedFiles: fileNames
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -244,13 +280,20 @@ router.post('/cache/clean', (req, res) => {
 
 /**
  * @route GET /api/cache/clean
- * @desc 使用GET方法清理过期的缓存图片（默认30天）
+ * @desc 获取缓存清理说明（图片缓存已设置为永不过期）
  */
 router.get('/cache/clean', (req, res) => {
   try {
-    const { days = 30 } = req.query;
-    imageCacheService.cleanCache(Number(days));
-    res.json({ success: true, message: `已清理超过 ${days} 天的缓存图片` });
+    res.json({ 
+      success: true, 
+      message: '图片缓存已设置为永不过期，不会自动清理任何文件',
+      info: '如需手动清理特定文件，请使用POST方法并提供fileNames数组参数',
+      example: {
+        method: 'POST',
+        url: '/api/cache/clean',
+        body: { fileNames: ['abc123.jpg', 'def456.png'] }
+      }
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

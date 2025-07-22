@@ -137,8 +137,13 @@ app.get('/', (req, res) => {
         </div>
         
         <div class="endpoint">
+          <p><span class="method">GET</span> <span class="url">/api/cache/files</span></p>
+          <p>获取所有缓存文件列表（用于查看可手动清理的文件）</p>
+        </div>
+        
+        <div class="endpoint">
           <p><span class="method">POST</span> <span class="url">/api/cache/clean</span></p>
-          <p>清理过期的缓存图片（默认保留30天）</p>
+          <p>手动清理指定的缓存图片文件（需要提供fileNames数组参数）</p>
         </div>
         
         <div class="endpoint">
@@ -191,9 +196,11 @@ app.get('/', (req, res) => {
         
         <h2>图片缓存功能</h2>
         <p>本服务自动缓存豆瓣的图片封面到本地，提高访问速度并减少对豆瓣服务器的请求。</p>
+        <p><strong>永久缓存:</strong> 图片缓存已设置为永不过期，一旦下载成功将永久保存，确保长期访问稳定性。</p>
         <p><strong>智能缓存修复:</strong> 系统会自动检测丢失的缓存图片并重新下载，确保图片始终可用。</p>
         <p><strong>缓存验证:</strong> 默认情况下，每次获取数据时都会验证图片缓存的有效性。如需提高响应速度，可使用 <code>?validateCache=false</code> 参数跳过验证。</p>
         <p><strong>缓存修复:</strong> 使用 <code>/api/cache/repair/:uid</code> 接口可以手动修复指定用户的图片缓存。</p>
+        <p><strong>手动清理:</strong> 如需清理特定缓存文件，可使用 <code>/api/cache/clean</code> 接口并提供文件名数组参数。</p>
         <p>API返回的数据中的图片字段：</p>
         <p><strong>image:</strong> 优先使用本地缓存地址，如果缓存失败或丢失则自动重新下载或使用原始地址</p>
         <p>缓存的图片通过 <code>/cache/images/</code> 路径访问</p>
@@ -205,14 +212,5 @@ app.get('/', (req, res) => {
 // 启动服务器
 app.listen(PORT, () => {
   console.log(`服务器运行在 http://localhost:${PORT}`);
-  
-  // 启动时清理过期缓存（保留30天）
-  setTimeout(() => {
-    imageCacheService.cleanCache(30);
-  }, 5000); // 5秒后执行，避免阻塞启动
-  
-  // 每天定时清理缓存
-  setInterval(() => {
-    imageCacheService.cleanCache(30);
-  }, 24 * 60 * 60 * 1000); // 24小时
+  console.log('图片缓存已设置为永不过期，不会自动清理缓存文件');
 }); 
