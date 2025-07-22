@@ -31,13 +31,13 @@ function getExtensionFromUrl(url) {
   const urlObj = new URL(url);
   const pathname = urlObj.pathname;
   const ext = path.extname(pathname);
-  
+
   // 如果没有扩展名或者不是常见的图片格式，默认使用.jpg
   const validExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
   if (!ext || !validExts.includes(ext.toLowerCase())) {
     return '.jpg';
   }
-  
+
   return ext.toLowerCase();
 }
 
@@ -79,26 +79,50 @@ async function downloadAndCacheImage(imageUrl) {
 
   try {
     console.log(`开始下载图片: ${imageUrl}`);
-    
+
     const response = await fetch(imageUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         'Referer': 'https://douban.com'
       },
-      timeout: 10000 // 10秒超时
+      timeout: 15000 // 增加到15秒超时
     });
 
     if (!response.ok) {
-      throw new Error(`下载失败: ${response.statusText}`);
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
     const buffer = await response.buffer();
+
+    if (buffer.length === 0) {
+      throw new Error('下载的文件为空');
+    }
+
     fs.writeFileSync(filePath, buffer);
-    
-    console.log(`图片缓存成功: ${fileName}`);
+
+    // 验证文件是否写入成功
+    const stats = fs.statSync(filePath);
+    if (stats.size === 0) {
+      throw new Error('文件写入后大小为0');
+    }
+
+    console.log(`图片缓存成功: ${fileName} (${(stats.size / 1024).toFixed(2)} KB)`);
     return `/cache/images/${fileName}`;
   } catch (error) {
-    console.error(`下载图片失败 ${imageUrl}:`, error);
+    console.error(`下载图片失败 ${imageUrl}:`);
+    console.error(`  错误类型: ${error.name}`);
+    console.error(`  错误信息: ${error.message}`);
+
+    // 如果文件已创建但有问题，删除它
+    if (fs.existsSync(filePath)) {
+      try {
+        fs.unlinkSync(filePath);
+        console.log(`已删除损坏的文件: ${fileName}`);
+      } catch (deleteError) {
+        console.error(`删除损坏文件失败: ${deleteError.message}`);
+      }
+    }
+
     return null;
   }
 }
@@ -115,7 +139,7 @@ async function batchCacheImages(imageUrls) {
   // 并发下载，但限制并发数量避免过载
   const concurrency = 5;
   const chunks = [];
-  
+
   for (let i = 0; i < validUrls.length; i += concurrency) {
     chunks.push(validUrls.slice(i, i + concurrency));
   }
@@ -145,7 +169,7 @@ function cleanCache(days = 30) {
     for (const file of files) {
       const filePath = path.join(CACHE_DIR, file);
       const stats = fs.statSync(filePath);
-      
+
       if (stats.mtime.getTime() < cutoffTime) {
         fs.unlinkSync(filePath);
         deletedCount++;
@@ -201,32 +225,46 @@ async function validateAndFixImagePath(imagePath, originalUrl) {
   if (imagePath && imagePath.startsWith('/cache/images/')) {
     const fileName = path.basename(imagePath);
     const filePath = path.join(CACHE_DIR, fileName);
-    
+
     if (fs.existsSync(filePath)) {
       try {
         const stats = fs.statSync(filePath);
         if (stats.size > 0) {
+          console.log(`缓存文件有效: ${fileName}`);
           return imagePath; // 缓存文件有效
+        } else {
+          console.log(`缓存文件大小为0，删除并重新下载: ${fileName}`);
+          fs.unlinkSync(filePath);
         }
       } catch (error) {
-        // 文件状态检查失败
+        console.log(`缓存文件状态检查失败: ${fileName}`, error.message);
       }
     }
-    
+
     // 缓存文件不存在或无效，尝试重新缓存
     if (originalUrl) {
-      console.log(`缓存文件丢失，正在重新缓存: ${fileName}`);
+      console.log(`缓存文件丢失，正在重新缓存: ${fileName} <- ${originalUrl}`);
       const newCachedPath = await downloadAndCacheImage(originalUrl);
-      return newCachedPath || originalUrl;
+      if (newCachedPath) {
+        console.log(`重新缓存成功: ${fileName}`);
+        return newCachedPath;
+      } else {
+        console.log(`重新缓存失败，使用原始URL: ${originalUrl}`);
+        return originalUrl;
+      }
+    } else {
+      console.log(`没有原始URL，无法修复缓存: ${fileName}`);
+      return imagePath; // 没有原始URL，返回原路径（虽然可能无效）
     }
   }
-  
+
   // 如果是原始URL，尝试缓存
   if (imagePath && (imagePath.startsWith('http://') || imagePath.startsWith('https://'))) {
+    console.log(`尝试缓存原始URL: ${imagePath}`);
     const cachedPath = await downloadAndCacheImage(imagePath);
     return cachedPath || imagePath;
   }
-  
+
   return imagePath;
 }
 
@@ -241,17 +279,23 @@ async function processImagesInData(data, validateCache = false) {
 
   // 收集所有图片URL和现有路径
   const imageInfo = new Map(); // URL -> {currentPath, originalUrl}
-  
+
   const collectUrls = (items) => {
     if (Array.isArray(items)) {
       items.forEach(item => {
         if (item.image) {
           // 尝试从现有数据中提取原始URL
-          const originalUrl = item.originalImage || 
-                            (item.image.startsWith('http') ? item.image : null);
+          const originalUrl = item.originalImage ||
+            (item.image.startsWith('http') ? item.image : null);
+
+          console.log(`收集图片信息: ${item.name || 'Unknown'}`);
+          console.log(`  当前路径: ${item.image}`);
+          console.log(`  原始URL: ${originalUrl || 'None'}`);
+
           imageInfo.set(item.image, {
             currentPath: item.image,
-            originalUrl: originalUrl
+            originalUrl: originalUrl,
+            itemName: item.name || 'Unknown'
           });
         }
       });
@@ -276,21 +320,34 @@ async function processImagesInData(data, validateCache = false) {
 
   // 处理图片缓存
   const pathToNewPath = new Map();
-  
+
   if (validateCache) {
     // 验证并修复现有缓存
+    console.log(`开始验证 ${imageInfo.size} 个图片的缓存...`);
+    let processedCount = 0;
+
     for (const [currentPath, info] of imageInfo) {
+      processedCount++;
+      console.log(`[${processedCount}/${imageInfo.size}] 验证: ${info.itemName}`);
+
       const validPath = await validateAndFixImagePath(info.currentPath, info.originalUrl);
       pathToNewPath.set(currentPath, validPath);
+
+      // 添加小延迟避免请求过快
+      if (processedCount % 5 === 0) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
     }
+
+    console.log(`缓存验证完成，处理了 ${processedCount} 个图片`);
   } else {
     // 批量缓存新图片
     const urlsToCache = Array.from(imageInfo.values())
       .map(info => info.originalUrl || info.currentPath)
       .filter(url => url && (url.startsWith('http://') || url.startsWith('https://')));
-    
+
     const urlToLocalPath = await batchCacheImages(urlsToCache);
-    
+
     for (const [currentPath, info] of imageInfo) {
       const originalUrl = info.originalUrl || info.currentPath;
       pathToNewPath.set(currentPath, urlToLocalPath[originalUrl] || currentPath);

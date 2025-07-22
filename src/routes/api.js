@@ -306,4 +306,71 @@ router.get('/cache/repair/:uid', async (req, res) => {
   }
 });
 
+/**
+ * @route GET /api/cache/debug/:uid
+ * @desc 调试用户的图片缓存状态
+ */
+router.get('/cache/debug/:uid', async (req, res) => {
+  try {
+    const { uid } = req.params;
+    const doubanService = require('../services/doubanService');
+    const imageCacheService = require('../services/imageCacheService');
+    
+    // 读取用户数据但不验证缓存
+    const userData = await doubanService.getUserData(uid, false);
+    
+    // 收集图片信息
+    const imageInfo = [];
+    const collectImages = (items) => {
+      if (Array.isArray(items)) {
+        items.forEach(item => {
+          if (item.image) {
+            const fileName = item.image.startsWith('/cache/images/') ? 
+              path.basename(item.image) : null;
+            const filePath = fileName ? 
+              path.join(imageCacheService.CACHE_DIR, fileName) : null;
+            
+            imageInfo.push({
+              name: item.name || 'Unknown',
+              currentPath: item.image,
+              originalUrl: item.originalImage || null,
+              fileName: fileName,
+              fileExists: filePath ? require('fs').existsSync(filePath) : false,
+              fileSize: filePath && require('fs').existsSync(filePath) ? 
+                require('fs').statSync(filePath).size : 0
+            });
+          }
+        });
+      }
+    };
+    
+    if (userData.data) {
+      if (userData.data.movies) collectImages(userData.data.movies);
+      if (userData.data.tvShows) collectImages(userData.data.tvShows);
+      if (userData.data.books) collectImages(userData.data.books);
+    }
+    
+    // 统计信息
+    const stats = {
+      totalImages: imageInfo.length,
+      cacheImages: imageInfo.filter(img => img.currentPath.startsWith('/cache/images/')).length,
+      existingFiles: imageInfo.filter(img => img.fileExists).length,
+      missingFiles: imageInfo.filter(img => img.currentPath.startsWith('/cache/images/') && !img.fileExists).length,
+      emptyFiles: imageInfo.filter(img => img.fileExists && img.fileSize === 0).length,
+      hasOriginalUrl: imageInfo.filter(img => img.originalUrl).length
+    };
+    
+    res.json({
+      success: true,
+      uid,
+      stats,
+      cacheDir: imageCacheService.CACHE_DIR,
+      sampleImages: imageInfo.slice(0, 10), // 前10个图片的详细信息
+      missingImages: imageInfo.filter(img => img.currentPath.startsWith('/cache/images/') && !img.fileExists).slice(0, 5)
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 module.exports = router; 

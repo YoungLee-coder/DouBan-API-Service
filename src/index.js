@@ -151,6 +151,11 @@ app.get('/', (req, res) => {
           <p>修复指定用户的图片缓存（重新下载丢失的图片）</p>
         </div>
         
+        <div class="endpoint">
+          <p><span class="method">GET</span> <span class="url">/api/cache/debug/:uid</span></p>
+          <p>调试用户的图片缓存状态，查看缓存统计和问题</p>
+        </div>
+        
         <h2>使用示例</h2>
         <p>获取用户 "ahbei" 的所有看过的电影:</p>
         <pre>GET http://localhost:${PORT}/api/users/ahbei/movies</pre>
@@ -175,6 +180,9 @@ app.get('/', (req, res) => {
         
         <p>跳过图片缓存验证以提高响应速度:</p>
         <pre>GET http://localhost:${PORT}/api/users/ahbei?validateCache=false</pre>
+        
+        <p>调试用户的图片缓存状态:</p>
+        <pre>GET http://localhost:${PORT}/api/cache/debug/ahbei</pre>
         
         <h2>状态说明</h2>
         <p><strong>done:</strong> 已观看（影视）/ 已阅读（书籍）</p>
