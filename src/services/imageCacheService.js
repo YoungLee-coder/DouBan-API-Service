@@ -288,9 +288,11 @@ async function processImagesInData(data, validateCache = false) {
           const originalUrl = item.originalImage ||
             (item.image.startsWith('http') ? item.image : null);
 
-          console.log(`收集图片信息: ${item.name || 'Unknown'}`);
-          console.log(`  当前路径: ${item.image}`);
-          console.log(`  原始URL: ${originalUrl || 'None'}`);
+          if (validateCache) {
+            console.log(`收集图片信息: ${item.name || 'Unknown'}`);
+            console.log(`  当前路径: ${item.image}`);
+            console.log(`  原始URL: ${originalUrl || 'None'}`);
+          }
 
           imageInfo.set(item.image, {
             currentPath: item.image,
@@ -359,12 +361,21 @@ async function processImagesInData(data, validateCache = false) {
     if (Array.isArray(items)) {
       return items.map(item => {
         if (item.image && pathToNewPath.has(item.image)) {
+          const newPath = pathToNewPath.get(item.image);
           return {
             ...item,
-            image: pathToNewPath.get(item.image),
+            image: newPath,
+            // 确保始终保留原始URL
+            originalImage: item.originalImage || (item.image.startsWith('http') ? item.image : null),
+            // 如果成功缓存，添加缓存路径字段
+            cachedImage: newPath && newPath.startsWith('/cache/images/') ? newPath : null
           };
         }
-        return item;
+        return {
+          ...item,
+          // 确保原始URL字段存在
+          originalImage: item.originalImage || (item.image && item.image.startsWith('http') ? item.image : null)
+        };
       });
     } else if (typeof items === 'object' && items !== null) {
       const updated = { ...items };

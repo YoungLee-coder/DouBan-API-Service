@@ -106,17 +106,22 @@ async function getItemDetail(type, id) {
     const data = await response.json();
     
     // 过滤数据，只保留需要的字段
+    const originalImageUrl = data.pic?.normal || '';
     const filteredData = {
       name: data.title || '',
-      image: data.pic?.normal || '',
+      image: originalImageUrl,
+      originalImage: originalImageUrl, // 保留原始URL
       rating: data.rating?.value || 0
     };
     
     // 处理图片缓存
     if (filteredData.image) {
       const cachedImage = await imageCacheService.downloadAndCacheImage(filteredData.image);
-      // 优先使用缓存图片，缓存失败则保留原始地址
-      filteredData.image = cachedImage || filteredData.image;
+      if (cachedImage) {
+        filteredData.image = cachedImage;
+        filteredData.cachedImage = cachedImage;
+      }
+      // 如果缓存失败，image字段保持原始URL，originalImage字段确保原始URL不丢失
     }
     
     // 保存数据到本地文件
@@ -227,12 +232,14 @@ function getStatusText(status, type = 'movie') {
  */
 function filterItemData(items, status = 'done', type = 'movie') {
   return items.map(item => {
+    const originalImageUrl = item.subject?.pic?.normal || '';
     const filteredItem = {
       name: item.subject?.title || '',
       markTime: item.create_time || '',
       comment: item.comment || '',
       rating: item.rating?.value || 0,
-      image: item.subject?.pic?.normal || '',
+      image: originalImageUrl, // 先保存原始URL，后续会被缓存处理替换
+      originalImage: originalImageUrl, // 始终保留原始URL
       status: getStatusText(status, type)
     };
     return filteredItem;
