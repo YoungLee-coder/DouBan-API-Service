@@ -26,9 +26,7 @@ const headers = {
  * @returns {Promise<Object>} 返回用户收藏内容
  */
 async function getUserInterests(uid, type = 'movie', status = 'done', start = 0, count = 50) {
-  console.log(`[DEBUG] 获取用户收藏 - UID: ${uid}, Type: ${type}, Status: ${status}`);
   const url = `${API_BASE_URL}/user/${uid}/interests?type=${type}&status=${status}&count=${count}&start=${start}`;
-  console.log(`[DEBUG] 请求URL: ${url}`);
   
   try {
     const response = await fetch(url, { headers });
@@ -108,22 +106,17 @@ async function getItemDetail(type, id) {
     const data = await response.json();
     
     // 过滤数据，只保留需要的字段
-    const originalImageUrl = data.pic?.normal || '';
     const filteredData = {
       name: data.title || '',
-      image: originalImageUrl,
-      originalImage: originalImageUrl, // 保留原始URL
+      image: data.pic?.normal || '',
       rating: data.rating?.value || 0
     };
     
     // 处理图片缓存
     if (filteredData.image) {
       const cachedImage = await imageCacheService.downloadAndCacheImage(filteredData.image);
-      if (cachedImage) {
-        filteredData.image = cachedImage;
-        filteredData.cachedImage = cachedImage;
-      }
-      // 如果缓存失败，image字段保持原始URL，originalImage字段确保原始URL不丢失
+      // 优先使用缓存图片，缓存失败则保留原始地址
+      filteredData.image = cachedImage || filteredData.image;
     }
     
     // 保存数据到本地文件
@@ -234,18 +227,38 @@ function getStatusText(status, type = 'movie') {
  */
 function filterItemData(items, status = 'done', type = 'movie') {
   return items.map(item => {
-    const originalImageUrl = item.subject?.pic?.normal || '';
     const filteredItem = {
       name: item.subject?.title || '',
       markTime: item.create_time || '',
       comment: item.comment || '',
       rating: item.rating?.value || 0,
-      image: originalImageUrl, // 先保存原始URL，后续会被缓存处理替换
-      originalImage: originalImageUrl, // 始终保留原始URL
+      image: item.subject?.pic?.normal || '',
       status: getStatusText(status, type)
     };
     return filteredItem;
   });
+}
+
+/**
+ * 删除指定用户的所有数据文件
+ * @param {string} uid - 用户ID
+ */
+function deleteUserData(uid) {
+  try {
+    const files = fs.readdirSync(dataPath);
+    const userFiles = files.filter(file => file.startsWith(`${uid}_`));
+    
+    let deleteCount = 0;
+    for (const file of userFiles) {
+      const filePath = path.join(dataPath, file);
+      fs.unlinkSync(filePath);
+      deleteCount++;
+    }
+    
+    console.log(`已删除用户 ${uid} 的 ${deleteCount} 个数据文件`);
+  } catch (error) {
+    console.error(`删除用户 ${uid} 数据文件失败:`, error);
+  }
 }
 
 /**
@@ -255,6 +268,10 @@ function filterItemData(items, status = 'done', type = 'movie') {
  */
 async function getUserAllData(uid) {
   try {
+    // 删除旧数据
+    console.log(`开始获取用户 ${uid} 的最新数据，正在删除旧数据...`);
+    deleteUserData(uid);
+    
     // 获取所有状态的电影数据
     const moviesDone = await getAllUserInterests(uid, 'movie', 'done');
     const moviesDoing = await getAllUserInterests(uid, 'movie', 'doing');
@@ -360,30 +377,14 @@ async function getUserAllData(uid) {
 /**
  * 检查并从本地获取用户数据，如果不存在则从API获取
  * @param {string} uid - 用户ID
- * @param {boolean} validateCache - 是否验证图片缓存，默认true
  * @returns {Promise<Object>} 返回用户数据
  */
-async function getUserData(uid, validateCache = true) {
+async function getUserData(uid) {
   const fileName = `${uid}_all_data.json`;
   const localData = loadData(fileName);
   
   if (localData) {
     console.log(`从本地加载用户${uid}数据`);
-    
-    if (validateCache) {
-      console.log(`验证用户${uid}的图片缓存...`);
-      // 验证并修复图片缓存
-      const validatedData = await imageCacheService.processImagesInData(localData, true);
-      
-      // 如果数据有变化，保存更新后的数据
-      if (JSON.stringify(validatedData) !== JSON.stringify(localData)) {
-        console.log(`用户${uid}的图片缓存已更新，保存新数据`);
-        saveData(fileName, validatedData);
-      }
-      
-      return validatedData;
-    }
-    
     return localData;
   }
   
@@ -401,5 +402,6 @@ module.exports = {
   getUserAllData,
   getUserData,
   filterItemData,
-  getStatusText
+  getStatusText,
+  deleteUserData
 }; 

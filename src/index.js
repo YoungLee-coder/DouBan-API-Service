@@ -89,7 +89,7 @@ app.get('/', (req, res) => {
         <div class="endpoint">
           <p><span class="method">GET</span> <span class="url">/api/users/:uid</span></p>
           <p>获取指定用户的所有数据</p>
-          <p>可选参数: <code>?refresh=true</code> 强制获取最新数据，<code>?validateCache=false</code> 跳过图片缓存验证</p>
+          <p>可选参数: <code>?refresh=true</code> 强制获取最新数据</p>
         </div>
         
         <div class="endpoint">
@@ -100,19 +100,19 @@ app.get('/', (req, res) => {
         <div class="endpoint">
           <p><span class="method">GET</span> <span class="url">/api/users/:uid/movies</span></p>
           <p>获取用户看过的电影</p>
-          <p>可选参数: <code>?status=done|doing|mark</code> 按状态过滤，<code>?refresh=true</code> 强制刷新，<code>?validateCache=false</code> 跳过图片缓存验证</p>
+          <p>可选参数: <code>?status=done|doing|mark</code> 按状态过滤，<code>?refresh=true</code> 强制刷新</p>
         </div>
         
         <div class="endpoint">
           <p><span class="method">GET</span> <span class="url">/api/users/:uid/tvshows</span></p>
           <p>获取用户看过的电视剧</p>
-          <p>可选参数: <code>?status=done|doing|mark</code> 按状态过滤，<code>?refresh=true</code> 强制刷新，<code>?validateCache=false</code> 跳过图片缓存验证</p>
+          <p>可选参数: <code>?status=done|doing|mark</code> 按状态过滤，<code>?refresh=true</code> 强制刷新</p>
         </div>
         
         <div class="endpoint">
           <p><span class="method">GET</span> <span class="url">/api/users/:uid/books</span></p>
           <p>获取用户读过的书籍</p>
-          <p>可选参数: <code>?status=done|doing|mark</code> 按状态过滤，<code>?refresh=true</code> 强制刷新，<code>?validateCache=false</code> 跳过图片缓存验证</p>
+          <p>可选参数: <code>?status=done|doing|mark</code> 按状态过滤，<code>?refresh=true</code> 强制刷新</p>
         </div>
         
         <div class="endpoint">
@@ -137,28 +137,8 @@ app.get('/', (req, res) => {
         </div>
         
         <div class="endpoint">
-          <p><span class="method">GET</span> <span class="url">/api/cache/files</span></p>
-          <p>获取所有缓存文件列表（用于查看可手动清理的文件）</p>
-        </div>
-        
-        <div class="endpoint">
           <p><span class="method">POST</span> <span class="url">/api/cache/clean</span></p>
-          <p>手动清理指定的缓存图片文件（需要提供fileNames数组参数）</p>
-        </div>
-        
-        <div class="endpoint">
-          <p><span class="method">GET</span> <span class="url">/api/cache/repair/:uid</span></p>
-          <p>修复指定用户的图片缓存（重新下载丢失的图片）</p>
-        </div>
-        
-        <div class="endpoint">
-          <p><span class="method">POST</span> <span class="url">/api/cache/repair/:uid</span></p>
-          <p>修复指定用户的图片缓存（重新下载丢失的图片）</p>
-        </div>
-        
-        <div class="endpoint">
-          <p><span class="method">GET</span> <span class="url">/api/cache/debug/:uid</span></p>
-          <p>调试用户的图片缓存状态，查看缓存统计和问题</p>
+          <p>清理过期的缓存图片（默认保留30天）</p>
         </div>
         
         <h2>使用示例</h2>
@@ -180,15 +160,6 @@ app.get('/', (req, res) => {
         <p>或者在获取用户数据时附加refresh参数:</p>
         <pre>GET http://localhost:${PORT}/api/users/ahbei?refresh=true</pre>
         
-        <p>修复用户 "ahbei" 的图片缓存（重新下载丢失的图片）:</p>
-        <pre>GET http://localhost:${PORT}/api/cache/repair/ahbei</pre>
-        
-        <p>跳过图片缓存验证以提高响应速度:</p>
-        <pre>GET http://localhost:${PORT}/api/users/ahbei?validateCache=false</pre>
-        
-        <p>调试用户的图片缓存状态:</p>
-        <pre>GET http://localhost:${PORT}/api/cache/debug/ahbei</pre>
-        
         <h2>状态说明</h2>
         <p><strong>done:</strong> 已观看（影视）/ 已阅读（书籍）</p>
         <p><strong>doing:</strong> 正在观看（影视）/ 正在阅读（书籍）</p>
@@ -196,13 +167,10 @@ app.get('/', (req, res) => {
         
         <h2>图片缓存功能</h2>
         <p>本服务自动缓存豆瓣的图片封面到本地，提高访问速度并减少对豆瓣服务器的请求。</p>
-        <p><strong>永久缓存:</strong> 图片缓存已设置为永不过期，一旦下载成功将永久保存，确保长期访问稳定性。</p>
-        <p><strong>智能缓存修复:</strong> 系统会自动检测丢失的缓存图片并重新下载，确保图片始终可用。</p>
-        <p><strong>缓存验证:</strong> 默认情况下，每次获取数据时都会验证图片缓存的有效性。如需提高响应速度，可使用 <code>?validateCache=false</code> 参数跳过验证。</p>
-        <p><strong>缓存修复:</strong> 使用 <code>/api/cache/repair/:uid</code> 接口可以手动修复指定用户的图片缓存。</p>
-        <p><strong>手动清理:</strong> 如需清理特定缓存文件，可使用 <code>/api/cache/clean</code> 接口并提供文件名数组参数。</p>
-        <p>API返回的数据中的图片字段：</p>
-        <p><strong>image:</strong> 优先使用本地缓存地址，如果缓存失败或丢失则自动重新下载或使用原始地址</p>
+        <p>API返回的数据中包含以下字段：</p>
+        <p><strong>originalImage:</strong> 豆瓣原始图片地址</p>
+        <p><strong>image:</strong> 优先使用本地缓存地址，如果缓存失败则使用原始地址</p>
+        <p><strong>cachedImage:</strong> 本地缓存地址（如果缓存成功）</p>
         <p>缓存的图片通过 <code>/cache/images/</code> 路径访问</p>
       </body>
     </html>
@@ -212,5 +180,14 @@ app.get('/', (req, res) => {
 // 启动服务器
 app.listen(PORT, () => {
   console.log(`服务器运行在 http://localhost:${PORT}`);
-  console.log('图片缓存已设置为永不过期，不会自动清理缓存文件');
+  
+  // 启动时清理过期缓存（保留30天）
+  setTimeout(() => {
+    imageCacheService.cleanCache(30);
+  }, 5000); // 5秒后执行，避免阻塞启动
+  
+  // 每天定时清理缓存
+  setInterval(() => {
+    imageCacheService.cleanCache(30);
+  }, 24 * 60 * 60 * 1000); // 24小时
 }); 

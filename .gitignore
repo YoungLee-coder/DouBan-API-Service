@@ -76,13 +76,9 @@ jspm_packages/
 # TernJS port file
 .tern-port
 
-# 数据和缓存目录 - 不上传用户数据和缓存文件
+# 数据和缓存目录 - 不上传测试数据
 src/data/
 data/
-# 图片缓存目录
-src/data/images/
-# 用户数据文件
-src/data/*.json
 
 # 日志文件
 logs
@@ -103,8 +99,6 @@ Thumbs.db
 *.swp
 *.swo
 *~
-# Kiro IDE 配置（如果不想共享）
-.kiro/
 
 # 临时文件
 tmp/
