@@ -74,16 +74,9 @@ npm start
 ### 强制从API获取最新数据
 - **POST** `/api/fetch/:uid`
   - `:uid` - 豆瓣用户ID
-  - 强制从API获取最新数据，会先删除该用户的旧数据文件
 - **GET** `/api/fetch/:uid`
   - `:uid` - 豆瓣用户ID
   - 使用GET方法强制获取最新数据，便于浏览器直接访问
-  - 会先删除该用户的旧数据文件
-
-### 删除用户数据
-- **DELETE** `/api/users/:uid`
-  - `:uid` - 豆瓣用户ID
-  - 删除指定用户的所有数据文件
 
 ### 图片缓存管理
 - **GET** `/api/cache/stats`
@@ -110,19 +103,14 @@ GET http://localhost:3000/api/users/ahbei/movies
 GET http://localhost:3000/api/items/movie/26683723
 ```
 
-强制获取用户"ahbei"的最新数据（会先删除旧数据）:
+强制获取用户"ahbei"的最新数据:
 ```
 GET http://localhost:3000/api/fetch/ahbei
 ```
 
-或者在获取用户数据时使用refresh参数（会先删除旧数据）:
+或者在获取用户数据时使用refresh参数:
 ```
 GET http://localhost:3000/api/users/ahbei?refresh=true
-```
-
-删除用户"ahbei"的所有数据文件:
-```
-DELETE http://localhost:3000/api/users/ahbei
 ```
 
 获取用户"ahbei"正在观看的电影:

@@ -249,38 +249,12 @@ function filterItemData(items, status = 'done', type = 'movie') {
 }
 
 /**
- * 删除指定用户的所有数据文件
- * @param {string} uid - 用户ID
- */
-function deleteUserData(uid) {
-  try {
-    const files = fs.readdirSync(dataPath);
-    const userFiles = files.filter(file => file.startsWith(`${uid}_`));
-    
-    let deleteCount = 0;
-    for (const file of userFiles) {
-      const filePath = path.join(dataPath, file);
-      fs.unlinkSync(filePath);
-      deleteCount++;
-    }
-    
-    console.log(`已删除用户 ${uid} 的 ${deleteCount} 个数据文件`);
-  } catch (error) {
-    console.error(`删除用户 ${uid} 数据文件失败:`, error);
-  }
-}
-
-/**
  * 获取用户所有类型的收藏数据
  * @param {string} uid - 用户ID
  * @returns {Object} 返回用户所有类型的收藏数据
  */
 async function getUserAllData(uid) {
   try {
-    // 删除旧数据
-    console.log(`开始获取用户 ${uid} 的最新数据，正在删除旧数据...`);
-    deleteUserData(uid);
-    
     // 获取所有状态的电影数据
     const moviesDone = await getAllUserInterests(uid, 'movie', 'done');
     const moviesDoing = await getAllUserInterests(uid, 'movie', 'doing');
@@ -427,6 +401,5 @@ module.exports = {
   getUserAllData,
   getUserData,
   filterItemData,
-  getStatusText,
-  deleteUserData
+  getStatusText
 }; 

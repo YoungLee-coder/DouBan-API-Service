@@ -19,8 +19,12 @@ router.get('/users', (req, res) => {
 /**
  * @route GET /api/users/:uid
  * @desc 获取指定用户的所有数据
+<<<<<<< HEAD
  * @query refresh - 可选参数，设置为true时强制从API获取最新数据（会先删除旧数据）
  * @query validateCache - 可选参数，设置为false时跳过图片缓存验证（默认为true）
+=======
+ * @query refresh - 可选参数，设置为true时强制从API获取最新数据
+>>>>>>> parent of 022a20b (更新README、API路由和服务层，添加删除用户数据的功能，优化强制获取最新数据的说明，确保在获取新数据前删除旧数据)
  */
 router.get('/users/:uid', async (req, res) => {
   try {
@@ -32,7 +36,7 @@ router.get('/users/:uid', async (req, res) => {
     // 如果设置了refresh=true，强制从API获取最新数据
     if (refresh === 'true') {
       const data = await doubanService.getUserAllData(uid);
-      res.json({ success: true, data, message: '已删除旧数据并获取最新数据' });
+      res.json({ success: true, data, message: '已获取最新数据' });
     } else {
       const shouldValidateCache = validateCache !== 'false';
       const data = await doubanService.getUserData(uid, shouldValidateCache);
@@ -205,20 +209,6 @@ router.get('/fetch/:uid', async (req, res) => {
     const { uid } = req.params;
     const data = await doubanService.getUserAllData(uid);
     res.json({ success: true, message: `已成功获取用户 ${uid} 的最新数据`, data });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-/**
- * @route DELETE /api/users/:uid
- * @desc 删除指定用户的所有数据文件
- */
-router.delete('/users/:uid', (req, res) => {
-  try {
-    const { uid } = req.params;
-    doubanService.deleteUserData(uid);
-    res.json({ success: true, message: `已删除用户 ${uid} 的所有数据文件` });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
